@@ -69,7 +69,7 @@ func (m *Manager) GetTaskStatus(taskID string) (models.TaskStatus, error) {
 	defer m.mu.RUnlock()
 	task, exist := m.tasks[taskID]
 	if !exist {
-		return 0, errvalues.ErrNoSuchTask
+		return "", errvalues.ErrNoSuchTask
 	}
 	return task.Status, nil
 }

@@ -1,16 +1,16 @@
 package models
 
-type TaskStatus uint8
+type TaskStatus string
 
 const (
-	Staged TaskStatus = iota
-	Completed
+	Staged    TaskStatus = "staged"
+	Completed TaskStatus = "completed"
 )
 
 type Task struct {
-	TaskID string
-	Files  []*FileRequest
-	Status TaskStatus
+	TaskID string         `json:"id"`
+	Files  []*FileRequest `json:"files"`
+	Status TaskStatus     `json:"status"`
 }
 
 type Extension string
