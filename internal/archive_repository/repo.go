@@ -2,6 +2,7 @@ package archives
 
 import (
 	"errors"
+	"os"
 	"sync"
 	errvalues "testcase/internal/errors"
 	"testcase/models"
@@ -88,4 +89,16 @@ func (m *Manager) GetArchive(taskID string) ([]byte, error) {
 	}
 	delete(m.tasks, taskID)
 	return result, nil
+}
+
+// Saves archive packed from raw in data folder, returns filename
+func (m *Manager) SaveArchiveLocaly(raw []byte, taskID string) (string, error) {
+	if err := os.MkdirAll("./data", 0755); err != nil {
+		return "", errors.New("failed to create data directory: " + err.Error())
+	}
+	err := os.WriteFile("./data/"+taskID+".zip", raw, os.ModeAppend)
+	if err != nil {
+		return "", errors.New("writing file error: " + err.Error())
+	}
+	return taskID + ".zip", nil
 }
