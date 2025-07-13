@@ -1,2 +1,3 @@
 tasks_max_count: 3
 files_max_count: 3
+api_address: localhost:8080
