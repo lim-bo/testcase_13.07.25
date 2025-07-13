@@ -22,12 +22,13 @@ func getRawArchive(files []*models.FileRequest) ([]byte, error) {
 		Timeout: time.Second * 30,
 	}
 	buf := bytes.NewBuffer(nil)
-	buf.Reset()
 	zipWriter := zip.NewWriter(buf)
 
-	wg := sync.WaitGroup{}
-	errChan := make(chan error, 1)
-	filesMutex := sync.Mutex{}
+	var (
+		wg        sync.WaitGroup
+		mu        sync.Mutex
+		allErrors []error
+	)
 
 	for _, file := range files {
 		wg.Add(1)
@@ -35,44 +36,41 @@ func getRawArchive(files []*models.FileRequest) ([]byte, error) {
 			defer wg.Done()
 			resp, err := cli.Get(f.Link)
 			if err != nil || resp.StatusCode != http.StatusOK {
-				errChan <- err
+				allErrors = append(allErrors, err)
 				return
 			}
 			defer resp.Body.Close()
+
+			mu.Lock()
 			header := zip.FileHeader{
 				Name:   f.Name + string(f.Ext),
-				Method: zip.Store,
+				Method: zip.Deflate,
 			}
 			writer, err := zipWriter.CreateHeader(&header)
 			if err != nil {
-				errChan <- err
+				allErrors = append(allErrors, err)
 				return
 			}
-			filesMutex.Lock()
-			defer filesMutex.Unlock()
+			mu.Unlock()
+
+			mu.Lock()
 			_, err = io.Copy(writer, resp.Body)
 			if err != nil {
-				errChan <- err
+				allErrors = append(allErrors, err)
 			}
+			mu.Unlock()
 		}(file)
 	}
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	var resultErr error = nil
-	for err := range errChan {
-		resultErr = errors.Join(resultErr, err)
-	}
-
-	if resultErr != nil {
-		return nil, resultErr
-	}
+	wg.Wait()
 
 	err := zipWriter.Close()
 	if err != nil {
 		return nil, err
 	}
+
+	if len(allErrors) > 0 {
+		return nil, errors.Join(allErrors...)
+	}
+
 	return buf.Bytes(), nil
 }

@@ -74,7 +74,7 @@ func (m *Manager) GetTaskStatus(taskID string) (models.TaskStatus, error) {
 	return task.Status, nil
 }
 
-// Returns archive data if there is task with given ID
+// Returns archive data if there is task with given ID, then deleted task
 func (m *Manager) GetArchive(taskID string) ([]byte, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -86,5 +86,6 @@ func (m *Manager) GetArchive(taskID string) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("getting result archive error(s): " + err.Error())
 	}
+	delete(m.tasks, taskID)
 	return result, nil
 }
